@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Metal+Mania&family=Rock+Salt&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-black font-sans antialiased;
+  }
+}
+
+.font-grunge {
+    font-family: 'Metal Mania', cursive;
+}
+
+.font-hand {
+    font-family: 'Rock Salt', cursive;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #fff;
+}
+::-webkit-scrollbar-thumb {
+    background: #000;
+}

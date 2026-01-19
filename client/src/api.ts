@@ -1,0 +1,26 @@
+import axios from 'axios'
+
+const api = axios.create({
+    baseURL: 'http://localhost:3000/api'
+})
+
+export const getProducts = async () => (await api.get('/products')).data
+export const getProduct = async (id: number) => (await api.get(`/products/${id}`)).data
+export const createOrder = async (order: any) => (await api.post('/orders', order)).data
+
+export const loginAdmin = async (creds: any) => (await api.post('/admin/login', creds)).data
+
+// Admin Product
+export const createProduct = async (data: any) => (await api.post('/admin/products', data)).data
+export const updateProduct = async (id: number, data: any) => (await api.put(`/admin/products/${id}`, data)).data
+export const deleteProduct = async (id: number) => (await api.delete(`/admin/products/${id}`)).data
+
+// Admin Users
+export const getUsers = async () => (await api.get('/admin/users')).data
+export const createUser = async (data: any) => (await api.post('/admin/users', data)).data
+export const deleteUser = async (id: number) => (await api.delete(`/admin/users/${id}`)).data
+
+// Admin Transactions
+export const getTransactions = async () => (await api.get('/admin/transactions')).data
+
+export default api
