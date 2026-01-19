@@ -3,6 +3,7 @@ import { getProducts } from "../api";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
+import banner from "../assets/banner.jpg";
 
 export default function Home() {
   const { data: products, isLoading } = useQuery({
@@ -19,7 +20,7 @@ export default function Home() {
       <header className="relative w-full h-[80vh] overflow-hidden bg-gray-200 flex items-center justify-center">
         {/* Background Layer */}
         <img
-          src="https://images.unsplash.com/photo-1594819047050-99defca82545?q=80&w=2400&auto=format&fit=crop"
+          src={banner}
           className="absolute inset-0 w-full h-full object-cover grayscale contrast-125 brightness-50"
           alt="Background"
         />
@@ -37,16 +38,16 @@ export default function Home() {
             <div className="absolute -bottom-3 -right-3 w-4 h-4 bg-lyoki-red border border-black" />
           </div>
           {/* Image overlay */}
-          <img
+          {/* <img
             src="https://images.unsplash.com/photo-1548705085-101177834f47?q=80&w=400&auto=format&fit=crop"
             className="absolute top-[-50%] left-[-20%] w-[400px] h-[500px] object-cover mix-blend-overlay opacity-50 rotate-[-15deg] hidden md:block"
-          />
+          /> */}
         </div>
       </header>
 
       {/* Slogan */}
       <div className="py-20 text-center uppercase tracking-[1em] text-sm font-bold font-grunge text-black">
-        Anti Copia | 1 of 1 | Only
+        Anti Copia 1 of 1 Only
       </div>
 
       {/* Product Grid */}
@@ -118,7 +119,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="bg-gray-100 p-8 rounded-lg border-4 border-black shadow-[8px_8px_0px_0px_#DC143C]">
             <p className="text-gray-700 mb-6 text-lg">
-              Siga-nos no Instagram para ver nossos últimos drops, bastidores e novidades!
+              Siga-nos no Instagram para ver nossos últimos drops, bastidores e
+              novidades!
             </p>
 
             {/* Instagram Feed Placeholder - Replace with actual embed code */}
