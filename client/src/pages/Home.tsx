@@ -6,9 +6,11 @@ import Footer from "../components/Footer";
 import banner from "../assets/banner.jpg";
 
 export default function Home() {
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading, isError, error } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   return (
@@ -52,7 +54,30 @@ export default function Home() {
 
       {/* Product Grid */}
       <main className="max-w-[1600px] mx-auto px-4 pb-32">
-        {isLoading ? (
+        {isError ? (
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_#DC143C]">
+              <h2 className="font-grunge text-4xl text-lyoki-red mb-4">ERRO!</h2>
+              <p className="text-gray-700 mb-6">
+                Não foi possível carregar os produtos. Verifique se o servidor está rodando.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-black text-white px-6 py-3 font-bold uppercase hover:bg-lyoki-red transition-colors"
+              >
+                Tentar Novamente
+              </button>
+              {error && (
+                <details className="mt-4 text-sm text-gray-600 text-left">
+                  <summary className="cursor-pointer font-bold">Detalhes do erro</summary>
+                  <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto text-xs">
+                    {error instanceof Error ? error.message : 'Erro desconhecido'}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
+        ) : isLoading ? (
           <div className="text-center py-20 font-grunge text-4xl animate-pulse">
             LOADING CHAOS...
           </div>

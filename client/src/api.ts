@@ -4,7 +4,10 @@ const api = axios.create({
     baseURL: 'http://localhost:3000/api'
 })
 
-export const getProducts = async () => (await api.get('/products')).data
+export const getProducts = async () => {
+    const response = await api.get('/products');
+    return response.data.products || [];
+}
 export const getProduct = async (id: number) => (await api.get(`/products/${id}`)).data
 export const createOrder = async (order: any) => (await api.post('/orders', order)).data
 

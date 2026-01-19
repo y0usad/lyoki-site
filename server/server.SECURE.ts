@@ -10,20 +10,6 @@ import { z } from 'zod'
 import { OAuth2Client } from 'google-auth-library'
 import crypto from 'crypto'
 
-// ✅ Extend Express Request type
-declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                id: number
-                email?: string
-                username?: string
-                role?: string
-            }
-        }
-    }
-}
-
 dotenv.config()
 
 const app = express()
@@ -127,7 +113,7 @@ const validate = (schema: z.ZodSchema) => {
             if (error instanceof z.ZodError) {
                 return res.status(400).json({
                     error: 'Validation error',
-                    details: error.issues
+                    details: error.errors
                 })
             }
             next(error)
@@ -358,7 +344,7 @@ app.put('/api/auth/profile/:id', authenticateToken, async (req, res) => {
         const id = parseInt(req.params.id)
 
         // ✅ Ensure user can only update their own profile
-        if (!req.user || req.user.id !== id) {
+        if (req.user.id !== id) {
             return res.status(403).json({ error: 'Forbidden' })
         }
 
@@ -465,8 +451,11 @@ app.post('/api/admin/login', authLimiter, async (req, res) => {
     }
 })
 
-// Admin Products (protected)
-app.post('/api/admin/products', authenticateToken, async (req, res) => {
+// ✅ Protect all admin routes
+app.use('/api/admin/*', authenticateToken)
+
+// Admin Products
+app.post('/api/admin/products', async (req, res) => {
     try {
         const { name, price, description, shortDescription, image, category, stock, sizes } = req.body
         const product = await prisma.product.create({
@@ -488,7 +477,7 @@ app.post('/api/admin/products', authenticateToken, async (req, res) => {
     }
 })
 
-app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
+app.put('/api/admin/products/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id)
         const data = req.body
@@ -507,7 +496,7 @@ app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
     }
 })
 
-app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
+app.delete('/api/admin/products/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id)
         await prisma.product.delete({ where: { id } })
@@ -519,7 +508,7 @@ app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
 })
 
 // Admin Users
-app.get('/api/admin/users', authenticateToken, async (req, res) => {
+app.get('/api/admin/users', async (req, res) => {
     try {
         const users = await prisma.user.findMany({
             select: {
@@ -541,7 +530,7 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
     }
 })
 
-app.post('/api/admin/users', authenticateToken, async (req, res) => {
+app.post('/api/admin/users', async (req, res) => {
     try {
         const { password, ...userData } = req.body
 
@@ -563,7 +552,7 @@ app.post('/api/admin/users', authenticateToken, async (req, res) => {
     }
 })
 
-app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
+app.put('/api/admin/users/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id)
         const { password, ...userData } = req.body
@@ -588,7 +577,7 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
     }
 })
 
-app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
+app.delete('/api/admin/users/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id)
         await prisma.user.delete({ where: { id } })
@@ -600,7 +589,7 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
 })
 
 // Admin Transactions
-app.get('/api/admin/transactions', authenticateToken, async (req, res) => {
+app.get('/api/admin/transactions', async (req, res) => {
     try {
         const orders = await prisma.order.findMany({
             include: { items: { include: { product: true } } },
