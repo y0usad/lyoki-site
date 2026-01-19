@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUsers, createUser, deleteUser } from '../../api'
-import { Plus, Trash2, Mail, Phone, MapPin } from 'lucide-react'
+import { getUsers, createUser, updateUser, deleteUser } from '../../api'
+import { Plus, Trash2, Mail, Phone, MapPin, Edit } from 'lucide-react'
 
 export default function AdminUsers() {
     const queryClient = useQueryClient()
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: getUsers })
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editingUser, setEditingUser] = useState<any>(null)
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -88,6 +89,7 @@ export default function AdminUsers() {
                             <th className="p-4">Localização</th>
                             <th className="p-4">Status</th>
                             <th className="p-4">Cadastro</th>
+                            <th className="p-4">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800 text-gray-300">
@@ -135,6 +137,18 @@ export default function AdminUsers() {
                                 <td className="p-4 text-xs text-gray-500">
                                     {new Date(u.createdAt).toLocaleDateString('pt-BR')}
                                 </td>
+                                <td className="p-4">
+                                    <button
+                                        onClick={() => {
+                                            setEditingUser(u)
+                                            setIsModalOpen(true)
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
+                                        title="Editar usuário"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -148,7 +162,13 @@ export default function AdminUsers() {
             </div>
 
             {isModalOpen && (
-                <UserModal onClose={() => setIsModalOpen(false)} />
+                <UserModal
+                    user={editingUser}
+                    onClose={() => {
+                        setIsModalOpen(false)
+                        setEditingUser(null)
+                    }}
+                />
             )}
 
             {showDeleteConfirm && (
@@ -191,19 +211,30 @@ export default function AdminUsers() {
     )
 }
 
-function UserModal({ onClose }: { onClose: () => void }) {
+function UserModal({ user, onClose }: { user?: any; onClose: () => void }) {
     const queryClient = useQueryClient()
+    const isEditing = !!user
+
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: '',
-        status: 'active'
+        name: user?.name || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        address: user?.address || '',
+        city: user?.city || '',
+        status: user?.status || 'active',
+        password: ''
     })
 
-    const mutation = useMutation({
+    const createMutation = useMutation({
         mutationFn: createUser,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] })
+            onClose()
+        }
+    })
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: number; data: any }) => updateUser(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
             onClose()
@@ -212,18 +243,32 @@ function UserModal({ onClose }: { onClose: () => void }) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        mutation.mutate(formData)
+
+        if (isEditing) {
+            // Don't send password if it's empty during edit
+            const updateData: any = { ...formData }
+            if (!updateData.password) {
+                delete updateData.password
+            }
+            updateMutation.mutate({ id: user.id, data: updateData })
+        } else {
+            createMutation.mutate(formData)
+        }
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value })
     }
 
+    const isPending = createMutation.isPending || updateMutation.isPending
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border-2 border-gray-800 rounded-lg max-w-2xl w-full">
+            <div className="bg-[#111] rounded-lg border-2 border-gray-800 max-w-2xl w-full">
                 <div className="bg-[#111] border-b border-gray-800 p-6 flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-white">Novo Usuário</h2>
+                    <h2 className="text-2xl font-bold text-white">
+                        {isEditing ? 'Editar Usuário' : 'Novo Usuário'}
+                    </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">×</button>
                 </div>
 
@@ -286,6 +331,21 @@ function UserModal({ onClose }: { onClose: () => void }) {
                         </div>
 
                         <div className="col-span-2">
+                            <label className="block text-gray-400 text-sm mb-2">
+                                Senha {isEditing && <span className="text-xs text-gray-500">(deixe em branco para não alterar)</span>}
+                            </label>
+                            <input
+                                name="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                required={!isEditing}
+                                placeholder={isEditing ? "••••••••" : ""}
+                            />
+                        </div>
+
+                        <div className="col-span-2">
                             <label className="block text-gray-400 text-sm mb-2">Endereço</label>
                             <input
                                 name="address"
@@ -299,10 +359,13 @@ function UserModal({ onClose }: { onClose: () => void }) {
                     <div className="flex gap-3 pt-4">
                         <button
                             type="submit"
-                            disabled={mutation.isPending}
+                            disabled={isPending}
                             className="flex-1 bg-lyoki-red hover:bg-white hover:text-black text-white py-3 font-bold uppercase tracking-wider rounded transition-colors disabled:opacity-50 border-2 border-transparent hover:border-black"
                         >
-                            {mutation.isPending ? 'Criando...' : 'Criar Usuário'}
+                            {isPending
+                                ? (isEditing ? 'Salvando...' : 'Criando...')
+                                : (isEditing ? 'Salvar Alterações' : 'Criar Usuário')
+                            }
                         </button>
                         <button
                             type="button"

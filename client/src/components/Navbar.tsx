@@ -1,9 +1,11 @@
-import { Menu, X, Instagram, MessageCircle, Music } from 'lucide-react'
+import { Menu, X, Instagram, MessageCircle, Music, User } from 'lucide-react'
 import { useState } from 'react'
 import { useCartStore } from '../store/cartStore'
+import { useAuthStore } from '../store/authStore'
 
 export default function Navbar() {
     const { toggleCart, cart } = useCartStore()
+    const { isAuthenticated } = useAuthStore()
     const count = cart.reduce((acc, item) => acc + item.quantity, 0)
     const [menuOpen, setMenuOpen] = useState(false)
 
@@ -17,6 +19,14 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-6">
+                    <a
+                        href={isAuthenticated ? "/account" : "/login"}
+                        className="flex items-center gap-1 hover:text-lyoki-red transition-colors"
+                        title={isAuthenticated ? "Minha Conta" : "Login"}
+                    >
+                        <User className="w-4 h-4" />
+                        <span className="hidden md:inline">{isAuthenticated ? "Conta" : "Login"}</span>
+                    </a>
                     <button className="flex items-center gap-1 hover:text-lyoki-red transition-colors" onClick={toggleCart}>
                         Carrinho <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-full">{count}</span>
                     </button>
