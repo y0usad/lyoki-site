@@ -4,6 +4,17 @@ const api = axios.create({
     baseURL: 'http://localhost:3000/api'
 })
 
+// ✅ Add JWT token to all requests
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('adminToken')
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+}, (error) => {
+    return Promise.reject(error)
+})
+
 export const getProducts = async () => {
     const response = await api.get('/products');
     return response.data.products || [];
@@ -31,5 +42,10 @@ export const deleteUser = async (id: number) => (await api.delete(`/admin/users/
 
 // Admin Transactions
 export const getTransactions = async () => (await api.get('/admin/transactions')).data
+
+// Admin Management
+export const getAdmins = async () => (await api.get('/admin/admins')).data
+export const createAdmin = async (data: any) => (await api.post('/admin/admins', data)).data
+export const deleteAdmin = async (id: number) => (await api.delete(`/admin/admins/${id}`)).data
 
 export default api

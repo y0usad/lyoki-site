@@ -65,23 +65,36 @@ app.use(express.json({ limit: '10mb' })) // ✅ Limit payload size
 // ✅ Security: Rate Limiters
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    max: 1000, // Increased from 100 to 1000
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        // Skip rate limiting for localhost in development
+        const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'
+        return process.env.NODE_ENV !== 'production' && isLocalhost
+    }
 })
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 50, // Increased from 5 to 50
     message: 'Too many login attempts, please try again after 15 minutes.',
     skipSuccessfulRequests: true,
+    skip: (req) => {
+        const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'
+        return process.env.NODE_ENV !== 'production' && isLocalhost
+    }
 })
 
 const orderLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 3,
+    max: 20, // Increased from 3 to 20
     message: 'Too many orders, please wait a moment.',
+    skip: (req) => {
+        const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'
+        return process.env.NODE_ENV !== 'production' && isLocalhost
+    }
 })
 
 app.use('/api/', generalLimiter)
@@ -465,10 +478,69 @@ app.post('/api/admin/login', authLimiter, async (req, res) => {
     }
 })
 
+// Admin Management Routes
+app.get('/api/admin/admins', authenticateToken, async (req, res) => {
+    try {
+        const admins = await prisma.admin.findMany({
+            select: {
+                id: true,
+                username: true,
+                // Never return password
+            }
+        })
+        res.json(admins)
+    } catch (e) {
+        console.error('Admins fetch error')
+        res.status(500).json({ error: 'Failed to fetch admins' })
+    }
+})
+
+app.post('/api/admin/admins', authenticateToken, async (req, res) => {
+    try {
+        const { username, password } = req.body
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' })
+        }
+
+        // Check if admin already exists
+        const existingAdmin = await prisma.admin.findUnique({ where: { username } })
+        if (existingAdmin) {
+            return res.status(400).json({ error: 'Admin with this username already exists' })
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12)
+
+        const admin = await prisma.admin.create({
+            data: {
+                username,
+                password: hashedPassword
+            }
+        })
+
+        res.json({ id: admin.id, username: admin.username })
+    } catch (e) {
+        console.error('Admin creation error')
+        res.status(500).json({ error: 'Failed to create admin' })
+    }
+})
+
+app.delete('/api/admin/admins/:id', authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id)
+        await prisma.admin.delete({ where: { id } })
+        res.json({ success: true })
+    } catch (e) {
+        console.error('Admin deletion error')
+        res.status(500).json({ error: 'Failed to delete admin' })
+    }
+})
+
 // Admin Products (protected)
 app.post('/api/admin/products', authenticateToken, async (req, res) => {
     try {
-        const { name, price, description, shortDescription, image, category, stock, sizes } = req.body
+        const { name, price, description, shortDescription, image, category, stock, sizes, isUnique } = req.body
         const product = await prisma.product.create({
             data: {
                 name,
@@ -478,7 +550,8 @@ app.post('/api/admin/products', authenticateToken, async (req, res) => {
                 image,
                 category,
                 stock: Number(stock),
-                sizes
+                sizes,
+                isUnique: Boolean(isUnique)
             }
         })
         res.json(product)
@@ -497,7 +570,8 @@ app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
             data: {
                 ...data,
                 price: data.price ? Number(data.price) : undefined,
-                stock: data.stock ? Number(data.stock) : undefined
+                stock: data.stock ? Number(data.stock) : undefined,
+                isUnique: data.isUnique !== undefined ? Boolean(data.isUnique) : undefined
             }
         })
         res.json(product)

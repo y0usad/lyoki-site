@@ -128,12 +128,25 @@ export default function AdminProducts() {
                                 </td>
                                 <td className="p-4 text-gray-400">{p.category}</td>
                                 <td className="p-4">
-                                    <button
-                                        onClick={() => handleEdit(p)}
-                                        className="p-2 hover:bg-gray-800 rounded text-blue-400 hover:text-blue-300 transition-colors"
-                                    >
-                                        <Pencil size={16} />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleEdit(p)}
+                                            className="p-2 hover:bg-gray-800 rounded text-blue-400 hover:text-blue-300 transition-colors"
+                                            title="Editar produto"
+                                        >
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedIds([p.id])
+                                                setShowDeleteConfirm(true)
+                                            }}
+                                            className="p-2 hover:bg-gray-800 rounded text-red-400 hover:text-red-300 transition-colors"
+                                            title="Deletar produto"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -204,7 +217,8 @@ function ProductModal({ product, onClose }: { product: any; onClose: () => void 
         image: '',
         category: '',
         stock: '',
-        sizes: ''
+        sizes: '',
+        isUnique: false
     })
 
     const mutation = useMutation({
@@ -336,6 +350,19 @@ function ProductModal({ product, onClose }: { product: any; onClose: () => void 
                                 className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none resize-none"
                                 required
                             />
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isUnique}
+                                    onChange={(e) => setFormData({ ...formData, isUnique: e.target.checked })}
+                                    className="w-5 h-5 bg-[#0a0a0a] border border-gray-700 rounded focus:ring-lyoki-red cursor-pointer"
+                                />
+                                <span className="text-white font-bold">PRODUTO ÚNICO</span>
+                                <span className="text-gray-400 text-sm">(Exibirá badge "PRODUTO ÚNICO" no site)</span>
+                            </label>
                         </div>
                     </div>
 

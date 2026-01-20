@@ -79,7 +79,7 @@ export default function Home() {
           </div>
         ) : isLoading ? (
           <div className="text-center py-20 font-grunge text-4xl animate-pulse">
-            LOADING CHAOS...
+            CARREGANDO...
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
@@ -98,9 +98,13 @@ export default function Home() {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale group-hover:grayscale-0 contrast-125"
                   />
                   {/* Stock Badge */}
-                  {product.stock < 10 && (
+                  {product.isUnique ? (
                     <div className="absolute top-2 left-2 bg-lyoki-red text-white text-[10px] uppercase font-bold px-2 py-1">
-                      Last Units
+                      PRODUTO ÚNICO
+                    </div>
+                  ) : product.stock < 10 && (
+                    <div className="absolute top-2 left-2 bg-lyoki-red text-white text-[10px] uppercase font-bold px-2 py-1">
+                      ÚLTIMAS UNIDADES
                     </div>
                   )}
                 </div>

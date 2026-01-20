@@ -21,6 +21,7 @@ import AdminLayout from './layouts/AdminLayout'
 import AdminProducts from './pages/admin/AdminProducts'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminTransactions from './pages/admin/AdminTransactions'
+import AdminAdmins from './pages/admin/AdminAdmins'
 import Admin from './pages/Admin'
 
 const GOOGLE_CLIENT_ID = '802903807673-1phb4ojhbvfrqhoj05e3johab97831oj.apps.googleusercontent.com'
@@ -53,6 +54,7 @@ function App() {
           <Route path="/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
           <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
           <Route path="/admin/transactions" element={<AdminLayout><AdminTransactions /></AdminLayout>} />
+          <Route path="/admin/admins" element={<AdminLayout><AdminAdmins /></AdminLayout>} />
 
         </Routes>
       </BrowserRouter>
