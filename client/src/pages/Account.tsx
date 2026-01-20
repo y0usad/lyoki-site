@@ -30,23 +30,28 @@ export default function Account() {
         return null
     }
 
-    const handleSave = () => {
-        updateUser({
-            name: formData.name,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            cpf: formData.cpf,
-            address: {
-                street: formData.street,
-                number: formData.number,
-                city: formData.city,
-                state: formData.state,
-                zipCode: formData.zipCode,
-                country: formData.country
-            }
-        })
-        setIsEditing(false)
+    const handleSave = async () => {
+        try {
+            await updateUser({
+                name: formData.name,
+                lastName: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
+                cpf: formData.cpf,
+                address: {
+                    street: formData.street,
+                    number: formData.number,
+                    city: formData.city,
+                    state: formData.state,
+                    zipCode: formData.zipCode,
+                    country: formData.country
+                }
+            })
+            setIsEditing(false)
+            alert('Perfil atualizado com sucesso!')
+        } catch (error) {
+            alert('Erro ao atualizar perfil. Tente novamente.')
+        }
     }
 
     const handleLogout = () => {

@@ -6,7 +6,12 @@ import Footer from "../components/Footer";
 import banner from "../assets/banner.jpg";
 
 export default function Home() {
-  const { data: products, isLoading, isError, error } = useQuery({
+  const {
+    data: products,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts,
     retry: 2,
@@ -57,9 +62,12 @@ export default function Home() {
         {isError ? (
           <div className="text-center py-20">
             <div className="max-w-md mx-auto bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_#DC143C]">
-              <h2 className="font-grunge text-4xl text-lyoki-red mb-4">ERRO!</h2>
+              <h2 className="font-grunge text-4xl text-lyoki-red mb-4">
+                ERRO!
+              </h2>
               <p className="text-gray-700 mb-6">
-                Não foi possível carregar os produtos. Verifique se o servidor está rodando.
+                Não foi possível carregar os produtos. Verifique se o servidor
+                está rodando.
               </p>
               <button
                 onClick={() => window.location.reload()}
@@ -69,9 +77,13 @@ export default function Home() {
               </button>
               {error && (
                 <details className="mt-4 text-sm text-gray-600 text-left">
-                  <summary className="cursor-pointer font-bold">Detalhes do erro</summary>
+                  <summary className="cursor-pointer font-bold">
+                    Detalhes do erro
+                  </summary>
                   <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto text-xs">
-                    {error instanceof Error ? error.message : 'Erro desconhecido'}
+                    {error instanceof Error
+                      ? error.message
+                      : "Erro desconhecido"}
                   </pre>
                 </details>
               )}
@@ -102,10 +114,12 @@ export default function Home() {
                     <div className="absolute top-2 left-2 bg-lyoki-red text-white text-[10px] uppercase font-bold px-2 py-1">
                       PRODUTO ÚNICO
                     </div>
-                  ) : product.stock < 10 && (
-                    <div className="absolute top-2 left-2 bg-lyoki-red text-white text-[10px] uppercase font-bold px-2 py-1">
-                      ÚLTIMAS UNIDADES
-                    </div>
+                  ) : (
+                    product.stock < 10 && (
+                      <div className="absolute top-2 left-2 bg-lyoki-red text-white text-[10px] uppercase font-bold px-2 py-1">
+                        ÚLTIMAS UNIDADES
+                      </div>
+                    )
                   )}
                 </div>
                 <h3 className="text-center font-bold text-sm md:text-base uppercase tracking-wider font-sans">

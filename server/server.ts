@@ -375,17 +375,31 @@ app.put('/api/auth/profile/:id', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Forbidden' })
         }
 
-        const { email, name, phone, address, city } = req.body
+        const { email, name, lastName, phone, cpf, street, number, city, state, zipCode, country, address } = req.body
+
+        const updateData: any = {}
+        if (email !== undefined) updateData.email = email
+        if (name !== undefined) updateData.name = name
+        if (lastName !== undefined) updateData.lastName = lastName
+        if (phone !== undefined) updateData.phone = phone
+        if (cpf !== undefined) updateData.cpf = cpf
+        if (street !== undefined) updateData.street = street
+        if (number !== undefined) updateData.number = number
+        if (city !== undefined) updateData.city = city
+        if (state !== undefined) updateData.state = state
+        if (zipCode !== undefined) updateData.zipCode = zipCode
+        if (country !== undefined) updateData.country = country
+        if (address !== undefined) updateData.address = address
 
         const user = await prisma.user.update({
             where: { id },
-            data: { email, name, phone, address, city }
+            data: updateData
         })
 
         const { password: _, ...userWithoutPassword } = user
         res.json(userWithoutPassword)
     } catch (error) {
-        console.error('Profile update error')
+        console.error('Profile update error:', error)
         res.status(500).json({ error: 'Error updating profile' })
     }
 })
@@ -599,10 +613,17 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
             select: {
                 id: true,
                 name: true,
+                lastName: true,
                 email: true,
                 phone: true,
-                address: true,
+                cpf: true,
+                street: true,
+                number: true,
                 city: true,
+                state: true,
+                zipCode: true,
+                country: true,
+                address: true, // Keep for backward compatibility
                 status: true,
                 createdAt: true,
                 // ✅ Never return password

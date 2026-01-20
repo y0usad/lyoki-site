@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getUsers, createUser, updateUser, deleteUser } from '../../api'
 import { Plus, Trash2, Mail, Phone, MapPin, Edit } from 'lucide-react'
@@ -86,6 +86,7 @@ export default function AdminUsers() {
                             </th>
                             <th className="p-4">Nome</th>
                             <th className="p-4">Contato</th>
+                            <th className="p-4">CPF/CNPJ</th>
                             <th className="p-4">Localização</th>
                             <th className="p-4">Status</th>
                             <th className="p-4">Cadastro</th>
@@ -105,6 +106,7 @@ export default function AdminUsers() {
                                 </td>
                                 <td className="p-4">
                                     <div className="font-bold text-white">{u.name}</div>
+                                    {u.lastName && <div className="text-xs text-gray-500">{u.lastName}</div>}
                                 </td>
                                 <td className="p-4">
                                     <div className="flex flex-col gap-1 text-xs">
@@ -121,13 +123,28 @@ export default function AdminUsers() {
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    {u.city && (
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <MapPin size={12} className="text-gray-500" />
-                                            <span>{u.city}</span>
-                                        </div>
+                                    {u.cpf ? (
+                                        <span className="text-xs font-mono">{u.cpf}</span>
+                                    ) : (
+                                        <span className="text-gray-600 text-xs">Não informado</span>
                                     )}
-                                    {!u.city && <span className="text-gray-600 text-xs">Não informado</span>}
+                                </td>
+                                <td className="p-4">
+                                    {(u.city || u.state) ? (
+                                        <div className="flex flex-col gap-1 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <MapPin size={12} className="text-gray-500" />
+                                                <span>{u.city}{u.state && `, ${u.state}`}</span>
+                                            </div>
+                                            {u.street && (
+                                                <div className="text-gray-600">
+                                                    {u.street}{u.number && `, ${u.number}`}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-600 text-xs">Não informado</span>
+                                    )}
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${u.status === 'active' ? 'bg-green-900/30 text-green-500' : 'bg-gray-800 text-gray-500'}`}>
@@ -217,13 +234,41 @@ function UserModal({ user, onClose }: { user?: any; onClose: () => void }) {
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
+        lastName: user?.lastName || '',
         email: user?.email || '',
         phone: user?.phone || '',
-        address: user?.address || '',
+        cpf: user?.cpf || '',
+        street: user?.street || '',
+        number: user?.number || '',
         city: user?.city || '',
+        state: user?.state || '',
+        zipCode: user?.zipCode || '',
+        country: user?.country || 'Brasil',
         status: user?.status || 'active',
         password: ''
     })
+
+    // ✅ Update formData when user changes (fixes bug where existing data wasn't loaded)
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                name: user.name || '',
+                lastName: user.lastName || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                cpf: user.cpf || '',
+                street: user.street || '',
+                number: user.number || '',
+                city: user.city || '',
+                state: user.state || '',
+                zipCode: user.zipCode || '',
+                country: user.country || 'Brasil',
+                status: user.status || 'active',
+                password: ''
+            })
+        }
+    }, [user])
+
 
     const createMutation = useMutation({
         mutationFn: createUser,
@@ -264,99 +309,194 @@ function UserModal({ user, onClose }: { user?: any; onClose: () => void }) {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] rounded-lg border-2 border-gray-800 max-w-2xl w-full">
-                <div className="bg-[#111] border-b border-gray-800 p-6 flex justify-between items-center">
+            <div className="bg-[#111] rounded-lg border-2 border-gray-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="bg-[#111] border-b border-gray-800 p-6 flex justify-between items-center sticky top-0 z-10">
                     <h2 className="text-2xl font-bold text-white">
                         {isEditing ? 'Editar Usuário' : 'Novo Usuário'}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">×</button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-gray-400 text-sm mb-2">Nome Completo</label>
-                            <input
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                                required
-                            />
-                        </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Dados Pessoais */}
+                    <div>
+                        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="text-lyoki-red">👤</span> Dados Pessoais
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Nome *</label>
+                                <input
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    required
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-gray-400 text-sm mb-2">Email</label>
-                            <input
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-400 text-sm mb-2">Telefone</label>
-                            <input
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-400 text-sm mb-2">Cidade</label>
-                            <input
-                                name="city"
-                                value={formData.city}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-400 text-sm mb-2">Status</label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                            >
-                                <option value="active">Ativo</option>
-                                <option value="inactive">Inativo</option>
-                            </select>
-                        </div>
-
-                        <div className="col-span-2">
-                            <label className="block text-gray-400 text-sm mb-2">
-                                Senha {isEditing && <span className="text-xs text-gray-500">(deixe em branco para não alterar)</span>}
-                            </label>
-                            <input
-                                name="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                                required={!isEditing}
-                                placeholder={isEditing ? "••••••••" : ""}
-                            />
-                        </div>
-
-                        <div className="col-span-2">
-                            <label className="block text-gray-400 text-sm mb-2">Endereço</label>
-                            <input
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
-                            />
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Sobrenome</label>
+                                <input
+                                    name="lastName"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    {/* Contato */}
+                    <div>
+                        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="text-lyoki-red">📧</span> Contato
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Email *</label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Telefone</label>
+                                <input
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    placeholder="(00) 00000-0000"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-400 text-sm mb-2">CPF/CNPJ</label>
+                                <input
+                                    name="cpf"
+                                    value={formData.cpf}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    placeholder="000.000.000-00"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Endereço */}
+                    <div>
+                        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="text-lyoki-red">📍</span> Endereço
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Rua</label>
+                                <input
+                                    name="street"
+                                    value={formData.street}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Número</label>
+                                <input
+                                    name="number"
+                                    value={formData.number}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Cidade</label>
+                                <input
+                                    name="city"
+                                    value={formData.city}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Estado</label>
+                                <input
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    placeholder="SP"
+                                    maxLength={2}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">CEP</label>
+                                <input
+                                    name="zipCode"
+                                    value={formData.zipCode}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    placeholder="00000-000"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">País</label>
+                                <input
+                                    name="country"
+                                    value={formData.country}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Configurações */}
+                    <div>
+                        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                            <span className="text-lyoki-red">⚙️</span> Configurações
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Status</label>
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                >
+                                    <option value="active">Ativo</option>
+                                    <option value="inactive">Inativo</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">
+                                    Senha {isEditing && <span className="text-xs text-gray-500">(deixe em branco para não alterar)</span>}
+                                </label>
+                                <input
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="w-full bg-[#0a0a0a] border border-gray-700 text-white p-3 rounded focus:border-lyoki-red outline-none"
+                                    required={!isEditing}
+                                    placeholder={isEditing ? "••••••••" : "Mín. 8 caracteres"}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-gray-800">
                         <button
                             type="submit"
                             disabled={isPending}

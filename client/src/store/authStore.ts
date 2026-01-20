@@ -37,13 +37,14 @@ export interface Order {
 
 interface AuthState {
     user: User | null
+    token: string | null
     orders: Order[]
     isAuthenticated: boolean
     login: (email: string, password: string) => Promise<boolean>
     register: (userData: Partial<User> & { password: string }) => Promise<boolean>
     loginWithGoogle: (credential: string) => Promise<boolean>
     logout: () => void
-    updateUser: (userData: Partial<User>) => void
+    updateUser: (userData: Partial<User>) => Promise<void>
     addOrder: (order: Order) => void
 }
 
@@ -51,6 +52,7 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set, get) => ({
             user: null,
+            token: null,
             orders: [],
             isAuthenticated: false,
 
@@ -72,19 +74,20 @@ export const useAuthStore = create<AuthState>()(
                         id: data.user.id,
                         email: data.user.email,
                         name: data.user.name,
-                        lastName: '', // Backend doesn't have lastName yet
+                        lastName: data.user.lastName || '',
                         phone: data.user.phone || '',
-                        address: data.user.address ? {
-                            street: data.user.address,
-                            number: '',
+                        cpf: data.user.cpf,
+                        address: {
+                            street: data.user.street || '',
+                            number: data.user.number || '',
                             city: data.user.city || '',
-                            state: '',
-                            zipCode: '',
-                            country: 'Brasil'
-                        } : undefined
+                            state: data.user.state || '',
+                            zipCode: data.user.zipCode || '',
+                            country: data.user.country || 'Brasil'
+                        }
                     }
 
-                    set({ user, isAuthenticated: true })
+                    set({ user, token: data.token, isAuthenticated: true })
                     return true
                 } catch (error) {
                     console.error('Login error:', error)
@@ -117,19 +120,20 @@ export const useAuthStore = create<AuthState>()(
                         id: data.user.id,
                         email: data.user.email,
                         name: data.user.name,
-                        lastName: userData.lastName || '',
+                        lastName: data.user.lastName || '',
                         phone: data.user.phone || '',
-                        address: data.user.address ? {
-                            street: data.user.address,
-                            number: '',
+                        cpf: data.user.cpf,
+                        address: {
+                            street: data.user.street || '',
+                            number: data.user.number || '',
                             city: data.user.city || '',
-                            state: '',
-                            zipCode: '',
-                            country: 'Brasil'
-                        } : undefined
+                            state: data.user.state || '',
+                            zipCode: data.user.zipCode || '',
+                            country: data.user.country || 'Brasil'
+                        }
                     }
 
-                    set({ user, isAuthenticated: true })
+                    set({ user, token: data.token, isAuthenticated: true })
                     return true
                 } catch (error) {
                     console.error('Registration error:', error)
@@ -155,19 +159,20 @@ export const useAuthStore = create<AuthState>()(
                         id: data.user.id,
                         email: data.user.email,
                         name: data.user.name,
-                        lastName: '',
+                        lastName: data.user.lastName || '',
                         phone: data.user.phone || '',
-                        address: data.user.address ? {
-                            street: data.user.address,
-                            number: '',
+                        cpf: data.user.cpf,
+                        address: {
+                            street: data.user.street || '',
+                            number: data.user.number || '',
                             city: data.user.city || '',
-                            state: '',
-                            zipCode: '',
-                            country: 'Brasil'
-                        } : undefined
+                            state: data.user.state || '',
+                            zipCode: data.user.zipCode || '',
+                            country: data.user.country || 'Brasil'
+                        }
                     }
 
-                    set({ user, isAuthenticated: true })
+                    set({ user, token: data.token, isAuthenticated: true })
                     return true
                 } catch (error) {
                     console.error('Google login error:', error)
@@ -176,23 +181,33 @@ export const useAuthStore = create<AuthState>()(
             },
 
             logout: () => {
-                set({ user: null, isAuthenticated: false, orders: [] })
+                set({ user: null, token: null, isAuthenticated: false, orders: [] })
             },
 
             updateUser: async (userData) => {
                 const currentUser = get().user
-                if (!currentUser) return
+                const token = get().token
+                if (!currentUser || !token) return
 
                 try {
                     const response = await fetch(`http://localhost:3000/api/auth/profile/${currentUser.id}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({
-                            email: userData.email || currentUser.email,
-                            name: userData.name || currentUser.name,
-                            phone: userData.phone || currentUser.phone,
-                            address: userData.address?.street,
-                            city: userData.address?.city
+                            email: userData.email,
+                            name: userData.name,
+                            lastName: userData.lastName,
+                            phone: userData.phone,
+                            cpf: userData.cpf,
+                            street: userData.address?.street,
+                            number: userData.address?.number,
+                            city: userData.address?.city,
+                            state: userData.address?.state,
+                            zipCode: userData.address?.zipCode,
+                            country: userData.address?.country
                         })
                     })
 
@@ -201,17 +216,29 @@ export const useAuthStore = create<AuthState>()(
                     }
 
                     const updatedUser = await response.json()
+
+                    // Update local state with all fields
                     set({
                         user: {
-                            ...currentUser,
-                            ...userData,
+                            id: currentUser.id,
                             email: updatedUser.email,
                             name: updatedUser.name,
-                            phone: updatedUser.phone
+                            lastName: updatedUser.lastName || '',
+                            phone: updatedUser.phone || '',
+                            cpf: updatedUser.cpf,
+                            address: {
+                                street: updatedUser.street || '',
+                                number: updatedUser.number || '',
+                                city: updatedUser.city || '',
+                                state: updatedUser.state || '',
+                                zipCode: updatedUser.zipCode || '',
+                                country: updatedUser.country || 'Brasil'
+                            }
                         }
                     })
                 } catch (error) {
                     console.error('Update profile error:', error)
+                    throw error
                 }
             },
 

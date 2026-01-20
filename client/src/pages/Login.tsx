@@ -12,6 +12,7 @@ export default function Login() {
     const [isLogin, setIsLogin] = useState(true)
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
     const [formData, setFormData] = useState({
         email: '',
@@ -24,21 +25,27 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+        setError('')
 
         try {
             if (isLogin) {
                 const success = await login(formData.email, formData.password)
                 if (success) {
                     navigate('/account')
+                } else {
+                    setError('Email ou senha inválidos. Tente novamente.')
                 }
             } else {
                 const success = await register(formData)
                 if (success) {
                     navigate('/account')
+                } else {
+                    setError('Erro ao criar conta. Verifique se a senha tem pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números.')
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error:', error)
+            setError(error.message || 'Ocorreu um erro. Tente novamente.')
         } finally {
             setLoading(false)
         }
@@ -196,6 +203,26 @@ export default function Login() {
                                 <Link to="#" className="text-sm text-gray-600 hover:text-lyoki-red underline">
                                     Esqueceu a senha?
                                 </Link>
+                            </div>
+                        )}
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 font-semibold">
+                                ⚠️ {error}
+                            </div>
+                        )}
+
+                        {/* Password Requirements (Register Only) */}
+                        {!isLogin && (
+                            <div className="bg-blue-50 border-2 border-blue-300 text-blue-800 px-4 py-3 text-sm">
+                                <strong>Requisitos da senha:</strong>
+                                <ul className="list-disc list-inside mt-1">
+                                    <li>Mínimo 8 caracteres</li>
+                                    <li>Pelo menos 1 letra maiúscula</li>
+                                    <li>Pelo menos 1 letra minúscula</li>
+                                    <li>Pelo menos 1 número</li>
+                                </ul>
                             </div>
                         )}
 
