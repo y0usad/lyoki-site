@@ -105,11 +105,7 @@ export default function ProductPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {product.stock < 10 && (
-                  <div className="bg-lyoki-red text-white text-xs uppercase font-bold px-3 py-2 inline-block">
-                    ÚLTIMAS UNIDADES
-                  </div>
-                )}
+                {product.stock < 10 && <div></div>}
                 <label className="text-xs font-bold uppercase">
                   Quantidade
                 </label>
