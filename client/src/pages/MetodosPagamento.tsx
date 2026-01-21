@@ -1,9 +1,16 @@
 import { CreditCard, Smartphone, Banknote, Shield, Clock, CheckCircle, Lock } from 'lucide-react'
+import { useEffect } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Cart from '../components/Cart'
 import Footer from '../components/Footer'
 
 export default function MetodosPagamento() {
+    usePageTitle('MÉTODOS DE PAGAMENTO')
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [])
     return (
         <div className="min-h-screen bg-white">
             <Navbar />

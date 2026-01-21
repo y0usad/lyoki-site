@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getProduct } from "../api";
 import { useCartStore } from "../store/cartStore";
+import { usePageTitle } from "../hooks/usePageTitle";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import { useState } from "react";
@@ -16,6 +17,9 @@ export default function ProductPage() {
   });
   const { addToCart, toggleCart } = useCartStore();
   const [quantity, setQuantity] = useState(1);
+
+  // Update title dynamically based on product
+  usePageTitle(product ? product.name.toUpperCase() : 'LYOKI');
 
   if (isLoading)
     return (

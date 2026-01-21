@@ -1,11 +1,29 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getProducts, createProduct, updateProduct, deleteProduct } from '../../api'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { getProductsPaginated, createProduct, updateProduct, deleteProduct } from '../../api'
+import { usePageTitle } from '../../hooks/usePageTitle'
+import { Pencil, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function AdminProducts() {
+    usePageTitle('LYOKI > PRODUTOS')
     const queryClient = useQueryClient()
-    const { data: products } = useQuery({ queryKey: ['products'], queryFn: getProducts })
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 20
+
+    // ✅ Server-Side Pagination
+    const { data } = useQuery({
+        queryKey: ['products', currentPage],
+        queryFn: () => getProductsPaginated(currentPage, itemsPerPage),
+        placeholderData: keepPreviousData
+    })
+
+    const products = data?.products || []
+    const totalPages = data?.pagination?.totalPages || 1
+    const totalItems = data?.pagination?.total || 0
+
+    // Pagination data from server
+    const currentProducts = products // Already paginated from server
+
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingProduct, setEditingProduct] = useState<any>(null)
     const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -19,12 +37,16 @@ export default function AdminProducts() {
             queryClient.invalidateQueries({ queryKey: ['products'] })
             setSelectedIds([])
             setShowDeleteConfirm(false)
+        },
+        onError: (error) => {
+            console.error('Erro ao deletar produtos:', error)
+            alert('Erro ao deletar produtos. Verifique o console.')
         }
     })
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
-            setSelectedIds(products?.map((p: any) => p.id) || [])
+            setSelectedIds(currentProducts?.map((p: any) => p.id) || [])
         } else {
             setSelectedIds([])
         }
@@ -89,7 +111,7 @@ export default function AdminProducts() {
                             <th className="p-4 w-12">
                                 <input
                                     type="checkbox"
-                                    checked={selectedIds.length === products?.length && products?.length > 0}
+                                    checked={selectedIds.length === currentProducts?.length && currentProducts?.length > 0}
                                     onChange={handleSelectAll}
                                     className="bg-transparent border-gray-600 rounded cursor-pointer"
                                 />
@@ -103,7 +125,7 @@ export default function AdminProducts() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800 text-gray-300">
-                        {products?.map((p: any) => (
+                        {currentProducts?.map((p: any) => (
                             <tr key={p.id} className={`hover:bg-[#151515] transition-colors ${selectedIds.includes(p.id) ? 'bg-gray-900' : ''}`}>
                                 <td className="p-4">
                                     <input
@@ -114,7 +136,11 @@ export default function AdminProducts() {
                                     />
                                 </td>
                                 <td className="p-4">
-                                    <img src={p.image} alt={p.name} className="w-12 h-14 object-cover border border-gray-700" />
+                                    {p.image ? (
+                                        <img src={p.image} alt={p.name} className="w-12 h-14 object-cover border border-gray-700" />
+                                    ) : (
+                                        <div className="w-12 h-14 bg-gray-800 border border-gray-700 flex items-center justify-center text-xs text-gray-500">Sem Foto</div>
+                                    )}
                                 </td>
                                 <td className="p-4">
                                     <div className="font-bold text-white">{p.name}</div>
@@ -159,6 +185,45 @@ export default function AdminProducts() {
                     </div>
                 )}
             </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-[#111] p-4 rounded-lg border border-gray-800">
+                    <div className="text-gray-400 text-sm">
+                        Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} produtos
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div className="flex gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-4 py-2 rounded font-bold transition-colors ${currentPage === page
+                                        ? 'bg-lyoki-red text-white'
+                                        : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
                 <ProductModal
@@ -209,17 +274,29 @@ export default function AdminProducts() {
 
 function ProductModal({ product, onClose }: { product: any; onClose: () => void }) {
     const queryClient = useQueryClient()
-    const [formData, setFormData] = useState(product || {
+
+    // VERSÃO ATUALIZADA - Todos os campos incluídos
+    const defaultFormData = {
         name: '',
         price: '',
-        description: '',
-        shortDescription: '',
-        image: '',
-        category: '',
         stock: '',
+        category: '',
         sizes: '',
+        image: '',
+        shortDescription: '',
+        description: '',
         isUnique: false
-    })
+    }
+
+    const initialFormData = product ? {
+        ...defaultFormData,
+        ...product,
+        price: product.price?.toString() || '',
+        stock: product.stock?.toString() || ''
+    } : defaultFormData
+
+    console.log('🔧 Initial formData (UPDATED):', initialFormData)
+    const [formData, setFormData] = useState(initialFormData)
 
     const mutation = useMutation({
         mutationFn: (data: any) => {
@@ -229,14 +306,23 @@ function ProductModal({ product, onClose }: { product: any; onClose: () => void 
                 stock: parseInt(data.stock)
             }
 
+            console.log('🔵 Sending product data:', payload)
+
             if (product) {
                 return updateProduct(product.id, payload)
             }
             return createProduct(payload)
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
+            console.log('✅ Product mutation successful:', data)
             queryClient.invalidateQueries({ queryKey: ['products'] })
             onClose()
+        },
+        onError: (error: any) => {
+            console.error('❌ Product mutation error:', error)
+            console.error('Error response:', error.response?.data)
+            console.error('Error status:', error.response?.status)
+            alert(`Erro ao salvar produto: ${error.response?.data?.error || error.message}`)
         }
     })
 
@@ -246,7 +332,10 @@ function ProductModal({ product, onClose }: { product: any; onClose: () => void 
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value })
+        console.log('📝 Field changed:', e.target.name, '=', e.target.value)
+        const newData = { ...formData, [e.target.name]: e.target.value }
+        console.log('📝 New formData:', newData)
+        setFormData(newData)
     }
 
     return (

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { User, Mail, MapPin, Package, Edit2, LogOut } from 'lucide-react'
 
 export default function Account() {
+    usePageTitle('LYOKI > MINHA CONTA')
+
     const navigate = useNavigate()
     const { user, orders, isAuthenticated, logout, updateUser } = useAuthStore()
     const [activeTab, setActiveTab] = useState<'profile' | 'orders'>('profile')

@@ -7,6 +7,9 @@ import Checkout from './pages/Checkout'
 import ProductPage from './pages/ProductPage'
 import Login from './pages/Login'
 import Account from './pages/Account'
+import PaymentSuccess from './pages/PaymentSuccess'
+import PaymentFailure from './pages/PaymentFailure'
+import PaymentPending from './pages/PaymentPending'
 
 // Support Pages
 import QuemSomos from './pages/QuemSomos'
@@ -18,11 +21,13 @@ import MetodosPagamento from './pages/MetodosPagamento'
 
 // Admin
 import AdminLayout from './layouts/AdminLayout'
+import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminProducts from './pages/admin/AdminProducts'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminTransactions from './pages/admin/AdminTransactions'
 import AdminAdmins from './pages/admin/AdminAdmins'
 import Admin from './pages/Admin'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const GOOGLE_CLIENT_ID = '802903807673-1phb4ojhbvfrqhoj05e3johab97831oj.apps.googleusercontent.com'
 
@@ -39,6 +44,11 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/account" element={<Account />} />
 
+          {/* Payment Return Pages */}
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/failure" element={<PaymentFailure />} />
+          <Route path="/payment/pending" element={<PaymentPending />} />
+
           {/* Support Pages */}
           <Route path="/quem-somos" element={<QuemSomos />} />
           <Route path="/contato" element={<Contato />} />
@@ -47,14 +57,35 @@ function App() {
           <Route path="/politica-loja" element={<PoliticaLoja />} />
           <Route path="/metodos-pagamento" element={<MetodosPagamento />} />
 
-          {/* Admin Login */}
-          <Route path="/admin" element={<Admin />} />
+          {/* Admin Login (SEM proteção) */}
+          <Route path="/admin/login" element={<Admin />} />
 
-          {/* Protected Admin Routes */}
-          <Route path="/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
-          <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
-          <Route path="/admin/transactions" element={<AdminLayout><AdminTransactions /></AdminLayout>} />
-          <Route path="/admin/admins" element={<AdminLayout><AdminAdmins /></AdminLayout>} />
+          {/* Protected Admin Routes (COM proteção) */}
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminLayout><AdminDashboard /></AdminLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/products" element={
+            <ProtectedRoute>
+              <AdminLayout><AdminProducts /></AdminLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute>
+              <AdminLayout><AdminUsers /></AdminLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/transactions" element={
+            <ProtectedRoute>
+              <AdminLayout><AdminTransactions /></AdminLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/admins" element={
+            <ProtectedRoute>
+              <AdminLayout><AdminAdmins /></AdminLayout>
+            </ProtectedRoute>
+          } />
 
         </Routes>
       </BrowserRouter>

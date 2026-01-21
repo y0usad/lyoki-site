@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useAuthStore } from '../store/authStore'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
 
 export default function Login() {
+    usePageTitle('LYOKI > LOGIN')
+
     const navigate = useNavigate()
     const { login, register, loginWithGoogle } = useAuthStore()
     const [isLogin, setIsLogin] = useState(true)

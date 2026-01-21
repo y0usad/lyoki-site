@@ -1,11 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loginAdmin } from '../api'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function Admin() {
+    usePageTitle('LYOKI > ADMIN')
+
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const navigate = useNavigate()
+
+    // ✅ Verificar se já está logado
+    useEffect(() => {
+        const token = localStorage.getItem('adminToken')
+        if (token) {
+            navigate('/admin')  // Redirecionar para dashboard
+        }
+    }, [navigate])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -13,7 +24,7 @@ export default function Admin() {
             const res = await loginAdmin({ username, password })
             if (res.success) {
                 localStorage.setItem('adminToken', res.token)
-                navigate('/admin/products') // Redirect to the dashboard
+                navigate('/admin') // Redirect to the dashboard
             }
         } catch {
             alert('Login failed')

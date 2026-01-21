@@ -1,11 +1,19 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getTransactions } from '../../api'
-import { ChevronDown, ChevronUp, Package, MapPin, CreditCard, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronUp, Package, MapPin, CreditCard, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function AdminTransactions() {
     const { data: transactions } = useQuery({ queryKey: ['transactions'], queryFn: getTransactions })
     const [expandedId, setExpandedId] = useState<number | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 20
+
+    // Paginação
+    const totalPages = Math.ceil((transactions?.length || 0) / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const currentTransactions = transactions?.slice(startIndex, endIndex) || []
 
     const toggleExpand = (id: number) => {
         setExpandedId(expandedId === id ? null : id)
@@ -21,7 +29,7 @@ export default function AdminTransactions() {
             </header>
 
             <div className="space-y-4">
-                {transactions?.map((t: any) => (
+                {currentTransactions?.map((t: any) => (
                     <div key={t.id} className="bg-[#111] border border-gray-800 rounded-lg overflow-hidden">
                         {/* Header Row */}
                         <div
@@ -44,8 +52,8 @@ export default function AdminTransactions() {
                                 </div>
 
                                 <span className={`px-3 py-1 rounded text-xs font-bold ${t.status === 'PAID' ? 'bg-green-900/30 text-green-500' :
-                                        t.status === 'SHIPPED' ? 'bg-blue-900/30 text-blue-500' :
-                                            'bg-yellow-900/30 text-yellow-500'
+                                    t.status === 'SHIPPED' ? 'bg-blue-900/30 text-blue-500' :
+                                        'bg-yellow-900/30 text-yellow-500'
                                     }`}>
                                     {t.status === 'PAID' ? 'PAGO' : t.status === 'SHIPPED' ? 'ENVIADO' : 'PENDENTE'}
                                 </span>
@@ -133,6 +141,45 @@ export default function AdminTransactions() {
                     </div>
                 )}
             </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-[#111] p-4 rounded-lg border border-gray-800">
+                    <div className="text-gray-400 text-sm">
+                        Mostrando {startIndex + 1} a {Math.min(endIndex, transactions?.length || 0)} de {transactions?.length || 0} transações
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div className="flex gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-4 py-2 rounded font-bold transition-colors ${currentPage === page
+                                        ? 'bg-lyoki-red text-white'
+                                        : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

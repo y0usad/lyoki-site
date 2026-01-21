@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Cart from '../components/Cart'
 import Footer from '../components/Footer'
@@ -56,7 +57,12 @@ const faqs = [
 ]
 
 export default function FAQ() {
+    usePageTitle('FAQ')
     const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [])
 
     const toggleFAQ = (index: number) => {
         setOpenIndex(openIndex === index ? null : index)

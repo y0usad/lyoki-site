@@ -2,19 +2,22 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCartStore } from "../store/cartStore";
 import { useAuthStore } from "../store/authStore";
-import { createOrder } from "../api";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { createOrder, createPaymentPreference } from "../api";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
 import { Tag, FileText } from "lucide-react";
 
 export default function Checkout() {
+  usePageTitle('LYOKI > CHECKOUT');
   const { cart, total, clearCart } = useCartStore();
   const { user, isAuthenticated, addOrder } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [shippingMethod, setShippingMethod] = useState("PAC2");
   const [shippingCost, setShippingCost] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("pix");
 
   const shippingOptions = [
     {
@@ -101,6 +104,7 @@ export default function Checkout() {
     setLoading(true);
 
     try {
+      // 1. Criar pedido no backend
       const orderData = {
         items: cart.map((i) => ({
           productId: i.id,
@@ -115,28 +119,49 @@ export default function Checkout() {
         postalCode: formData.zipCode,
       };
 
-      await createOrder(orderData);
+      const order = await createOrder(orderData);
 
-      // Add to user's order history if logged in
-      if (isAuthenticated) {
-        const newOrder = {
-          id: Date.now(),
-          date: new Date().toISOString(),
-          items: cart,
-          total: total() + shippingCost,
-          status: "processing" as const,
-          shippingMethod:
-            shippingOptions.find((m) => m.id === shippingMethod)?.name || "",
-          shippingCost: shippingCost,
-        };
-        addOrder(newOrder);
+      // 2. Criar preferência de pagamento no Mercado Pago
+      const paymentData = {
+        orderId: order.id,
+        amount: total() + shippingCost,
+        description: `Pedido #${order.id} - ${cart.length} item(ns)`,
+        paymentMethod: paymentMethod,
+        payer: {
+          email: formData.email,
+          name: `${formData.name} ${formData.lastName}`,
+        },
+      };
+
+      const paymentResult = await createPaymentPreference(paymentData);
+
+      if (paymentResult.success) {
+        // Add to user's order history if logged in
+        if (isAuthenticated) {
+          const newOrder = {
+            id: order.id,
+            date: new Date().toISOString(),
+            items: cart,
+            total: total() + shippingCost,
+            status: "processing" as const,
+            shippingMethod:
+              shippingOptions.find((m) => m.id === shippingMethod)?.name || "",
+            shippingCost: shippingCost,
+          };
+          addOrder(newOrder);
+        }
+
+        clearCart();
+
+        // 3. Redirecionar para o Mercado Pago
+        // Em produção, use initPoint. Em teste, use sandboxInitPoint
+        const checkoutUrl = paymentResult.sandboxInitPoint || paymentResult.initPoint;
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error(paymentResult.error || "Erro ao criar pagamento");
       }
-
-      alert("✅ Pedido realizado com sucesso!");
-      clearCart();
-      navigate(isAuthenticated ? "/account" : "/");
-    } catch (e) {
-      alert("❌ Erro ao processar pedido. Tente novamente.");
+    } catch (e: any) {
+      alert(`❌ Erro ao processar pedido: ${e.message || "Tente novamente."}`);
       console.error(e);
     } finally {
       setLoading(false);
@@ -195,17 +220,57 @@ export default function Checkout() {
                 Continuar navegando
               </Link>
 
-              {/* PayPal Express Checkout */}
+              {/* Payment Method Selection */}
               <div className="mb-8 pb-8 border-b-2 border-gray-300">
-                <p className="text-center text-sm text-gray-600 mb-3 uppercase font-semibold">
-                  Checkout expresso
-                </p>
-                <button className="w-full bg-yellow-400 text-black py-4 font-bold uppercase text-sm hover:bg-yellow-500 transition-colors flex items-center justify-center gap-2 mb-4">
-                  <span className="text-blue-700 font-bold text-lg">Pay</span>
-                  <span className="text-blue-500 font-bold text-lg">Pal</span>
-                  <span>Checkout</span>
-                </button>
-                <p className="text-center text-sm text-gray-500">ou</p>
+                <h3 className="font-bold text-lg uppercase mb-4">
+                  Método de Pagamento
+                </h3>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-4 bg-white border-2 border-black cursor-pointer hover:border-lyoki-red transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="pix"
+                      checked={paymentMethod === "pix"}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <div className="font-bold text-sm">💚 PIX</div>
+                      <p className="text-xs text-gray-600">Aprovação instantânea</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-4 bg-white border-2 border-black cursor-pointer hover:border-lyoki-red transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="credit_card"
+                      checked={paymentMethod === "credit_card"}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <div className="font-bold text-sm">💳 Cartão de Crédito</div>
+                      <p className="text-xs text-gray-600">Parcele em até 12x</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-4 bg-white border-2 border-black cursor-pointer hover:border-lyoki-red transition-colors">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="boleto"
+                      checked={paymentMethod === "boleto"}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <div className="font-bold text-sm">📄 Boleto Bancário</div>
+                      <p className="text-xs text-gray-600">Vencimento em 3 dias úteis</p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Login Prompt */}

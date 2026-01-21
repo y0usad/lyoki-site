@@ -19,6 +19,11 @@ export const getProducts = async () => {
     const response = await api.get('/products');
     return response.data.products || [];
 }
+
+export const getProductsPaginated = async (page: number, limit: number) => {
+    const response = await api.get(`/products?page=${page}&limit=${limit}`);
+    return response.data;
+}
 export const getProduct = async (id: number) => (await api.get(`/products/${id}`)).data
 export const createOrder = async (order: any) => (await api.post('/orders', order)).data
 
@@ -47,5 +52,9 @@ export const getTransactions = async () => (await api.get('/admin/transactions')
 export const getAdmins = async () => (await api.get('/admin/admins')).data
 export const createAdmin = async (data: any) => (await api.post('/admin/admins', data)).data
 export const deleteAdmin = async (id: number) => (await api.delete(`/admin/admins/${id}`)).data
+
+// Payment (Mercado Pago)
+export const createPaymentPreference = async (data: any) => (await api.post('/payment/create-preference', data)).data
+export const getPaymentStatus = async (paymentId: string) => (await api.get(`/payment/status/${paymentId}`)).data
 
 export default api

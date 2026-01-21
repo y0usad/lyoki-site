@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "../api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
 import banner from "../assets/banner.jpg";
 
 export default function Home() {
+  usePageTitle("LYOKI");
+
   const {
     data: products,
     isLoading,
@@ -95,7 +98,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
-            {products?.map((product: any) => (
+            {products?.slice(0, 12).map((product: any) => (
               <div
                 key={product.id}
                 className="group relative cursor-pointer"

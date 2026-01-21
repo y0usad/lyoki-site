@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../store/cartStore'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Cart from '../components/Cart'
 import Footer from '../components/Footer'
 import { Trash2, Plus, Minus, Tag, FileText } from 'lucide-react'
 
 export default function CartPage() {
+    usePageTitle('LYOKI > CARRINHO')
     const { cart, total, removeFromCart, updateQuantity } = useCartStore()
     const navigate = useNavigate()
 

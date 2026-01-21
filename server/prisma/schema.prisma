@@ -50,17 +50,19 @@ model Product {
 }
 
 model Order {
-  id            Int         @id @default(autoincrement())
-  customerName  String?
-  customerEmail String?
-  total         Float
-  status        String      @default("PENDING") // PENDING, PAID, SHIPPED
-  createdAt     DateTime    @default(now())
-  address       String?
-  city          String?
-  postalCode    String?
-  paymentMethod String?     @default("Credit Card")
-  items         OrderItem[]
+  id              Int         @id @default(autoincrement())
+  customerName    String?
+  customerEmail   String?
+  total           Float
+  status          String      @default("PENDING") // PENDING, PAID, SHIPPED, CANCELLED
+  createdAt       DateTime    @default(now())
+  address         String?
+  city            String?
+  postalCode      String?
+  paymentMethod   String?     @default("pix") // pix, credit_card, boleto
+  paymentId       String?     // ID da transação no Mercado Pago
+  paymentStatus   String?     @default("pending") // pending, approved, rejected
+  items           OrderItem[]
 }
 
 model OrderItem {

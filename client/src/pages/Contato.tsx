@@ -1,9 +1,17 @@
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { useEffect } from "react";
+import { usePageTitle } from "../hooks/usePageTitle";
 import Navbar from "../components/Navbar";
 import Cart from "../components/Cart";
 import Footer from "../components/Footer";
 
 export default function Contato() {
+  usePageTitle("CONTATO");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />

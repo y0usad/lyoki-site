@@ -1,9 +1,16 @@
 import { Package, Truck, RefreshCw, Clock, MapPin, AlertCircle } from 'lucide-react'
+import { useEffect } from 'react'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Cart from '../components/Cart'
 import Footer from '../components/Footer'
 
 export default function EnvioDevolucoes() {
+    usePageTitle('ENVIO E DEVOLUÇÕES')
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [])
     return (
         <div className="min-h-screen bg-white">
             <Navbar />

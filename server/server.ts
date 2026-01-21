@@ -9,6 +9,7 @@ import helmet from 'helmet'
 import { z } from 'zod'
 import { OAuth2Client } from 'google-auth-library'
 import crypto from 'crypto'
+import { createPaymentPreference, getPaymentStatus } from './payment'
 
 // ✅ Extend Express Request type
 declare global {
@@ -172,13 +173,25 @@ const authenticateToken = (req: any, res: any, next: any) => {
 app.get('/api/products', async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page as string) || 1)
-        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20))
+        const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 20))
         const skip = (page - 1) * limit
 
         const [products, total] = await Promise.all([
             prisma.product.findMany({
                 skip,
                 take: limit,
+                // Otimização: Selecionar apenas campos necessários para a lista
+                select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    category: true,
+                    stock: true,
+                    shortDescription: true,
+                    isUnique: true,
+                    // NÃO selecionar 'description' que pode ser grande
+                }
             }),
             prisma.product.count()
         ])
@@ -192,9 +205,11 @@ app.get('/api/products', async (req, res) => {
                 totalPages: Math.ceil(total / limit)
             }
         })
-    } catch (error) {
-        console.error('Error fetching products')
-        res.status(500).json({ error: 'Error fetching products' })
+    } catch (error: any) {
+        console.error('❌ Error fetching products:', error.message)
+        // Se for erro de tamanho, avisa
+        if (error.code === 'P2025') console.error('Record not found')
+        res.status(500).json({ error: 'Error fetching products', details: error.message })
     }
 })
 
@@ -286,6 +301,102 @@ app.post('/api/orders', orderLimiter, validate(orderSchema), async (req, res) =>
         res.status(400).json({ error: error.message || 'Error creating order' })
     }
 })
+
+// --- Payment Routes ---
+
+
+// Criar preferência de pagamento
+app.post('/api/payment/create-preference', async (req, res) => {
+    try {
+        const { orderId, amount, description, paymentMethod, payer } = req.body
+
+        if (!orderId || !amount || !payer?.email) {
+            return res.status(400).json({ error: 'Missing required fields' })
+        }
+
+        const result = await createPaymentPreference({
+            orderId,
+            amount,
+            description: description || `Pedido #${orderId}`,
+            paymentMethod: paymentMethod || 'pix',
+            payer
+        })
+
+        if (!result.success) {
+            return res.status(500).json({ error: result.error })
+        }
+
+        // Atualizar pedido com ID da preferência
+        await prisma.order.update({
+            where: { id: orderId },
+            data: {
+                paymentId: result.preferenceId,
+                paymentMethod: paymentMethod || 'pix'
+            }
+        })
+
+        res.json(result)
+    } catch (error: any) {
+        console.error('Payment preference creation error:', error)
+        res.status(500).json({ error: 'Failed to create payment preference' })
+    }
+})
+
+// Webhook do Mercado Pago (recebe notificações de pagamento)
+app.post('/api/webhooks/mercadopago', async (req, res) => {
+    try {
+        const { type, data } = req.body
+
+        console.log('📬 Webhook recebido:', type, data)
+
+        // Mercado Pago envia notificação quando o pagamento é atualizado
+        if (type === 'payment') {
+            const paymentId = data.id
+
+            // Buscar status do pagamento
+            const paymentInfo = await getPaymentStatus(paymentId)
+
+            if (paymentInfo.success) {
+                // Encontrar pedido pelo paymentId
+                const order = await prisma.order.findFirst({
+                    where: { paymentId: paymentId.toString() }
+                })
+
+                if (order) {
+                    // Atualizar status do pedido
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: {
+                            paymentStatus: paymentInfo.status,
+                            status: paymentInfo.status === 'approved' ? 'PAID' : 'PENDING'
+                        }
+                    })
+
+                    console.log(`✅ Pedido #${order.id} atualizado: ${paymentInfo.status}`)
+                }
+            }
+        }
+
+        res.status(200).send('OK')
+    } catch (error) {
+        console.error('Webhook processing error:', error)
+        res.status(500).send('Error')
+    }
+})
+
+// Verificar status de pagamento
+app.get('/api/payment/status/:paymentId', async (req, res) => {
+    try {
+        const { paymentId } = req.params
+        const result = await getPaymentStatus(paymentId)
+        res.json(result)
+    } catch (error) {
+        console.error('Payment status check error:', error)
+        res.status(500).json({ error: 'Failed to check payment status' })
+    }
+})
+
+
 
 // --- User Authentication Routes ---
 
@@ -554,24 +665,34 @@ app.delete('/api/admin/admins/:id', authenticateToken, async (req, res) => {
 // Admin Products (protected)
 app.post('/api/admin/products', authenticateToken, async (req, res) => {
     try {
+        console.log('📦 Product creation request received:', req.body)
         const { name, price, description, shortDescription, image, category, stock, sizes, isUnique } = req.body
+
+        // Validate required fields
+        if (!name || !price || !stock) {
+            console.error('❌ Missing required fields:', { name, price, stock })
+            return res.status(400).json({ error: 'Name, price, and stock are required' })
+        }
+
         const product = await prisma.product.create({
             data: {
                 name,
                 price: Number(price),
-                description,
-                shortDescription,
+                description: description || '',
+                shortDescription: shortDescription || '',
                 image,
                 category,
                 stock: Number(stock),
-                sizes,
+                sizes: sizes || '',
                 isUnique: Boolean(isUnique)
             }
         })
+        console.log('✅ Product created successfully:', product.id, product.name)
         res.json(product)
-    } catch (e) {
-        console.error('Product creation error')
-        res.status(500).json({ error: 'Failed to create product' })
+    } catch (e: any) {
+        console.error('❌ Product creation error:', e.message)
+        console.error('Stack:', e.stack)
+        res.status(500).json({ error: 'Failed to create product', details: e.message })
     }
 })
 

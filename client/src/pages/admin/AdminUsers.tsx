@@ -1,15 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getUsers, createUser, updateUser, deleteUser } from '../../api'
-import { Plus, Trash2, Mail, Phone, MapPin, Edit } from 'lucide-react'
+import { usePageTitle } from '../../hooks/usePageTitle'
+import { Plus, Trash2, Mail, Phone, MapPin, Edit, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function AdminUsers() {
+    usePageTitle('LYOKI > USUÁRIOS')
     const queryClient = useQueryClient()
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: getUsers })
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<any>(null)
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 20
+
+    // Paginação
+    const totalPages = Math.ceil((users?.length || 0) / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const currentUsers = users?.slice(startIndex, endIndex) || []
 
     const deleteMutation = useMutation({
         mutationFn: async (ids: number[]) => {
@@ -24,7 +34,7 @@ export default function AdminUsers() {
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
-            setSelectedIds(users?.map((u: any) => u.id) || [])
+            setSelectedIds(currentUsers?.map((u: any) => u.id) || [])
         } else {
             setSelectedIds([])
         }
@@ -79,7 +89,7 @@ export default function AdminUsers() {
                             <th className="p-4 w-12">
                                 <input
                                     type="checkbox"
-                                    checked={selectedIds.length === users?.length && users?.length > 0}
+                                    checked={selectedIds.length === currentUsers?.length && currentUsers?.length > 0}
                                     onChange={handleSelectAll}
                                     className="bg-transparent border-gray-600 rounded cursor-pointer"
                                 />
@@ -94,7 +104,7 @@ export default function AdminUsers() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800 text-gray-300">
-                        {users?.map((u: any) => (
+                        {currentUsers?.map((u: any) => (
                             <tr key={u.id} className={`hover:bg-[#151515] transition-colors ${selectedIds.includes(u.id) ? 'bg-gray-900' : ''}`}>
                                 <td className="p-4">
                                     <input
@@ -177,6 +187,45 @@ export default function AdminUsers() {
                     </div>
                 )}
             </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-[#111] p-4 rounded-lg border border-gray-800">
+                    <div className="text-gray-400 text-sm">
+                        Mostrando {startIndex + 1} a {Math.min(endIndex, users?.length || 0)} de {users?.length || 0} usuários
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div className="flex gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-4 py-2 rounded font-bold transition-colors ${currentPage === page
+                                            ? 'bg-lyoki-red text-white'
+                                            : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
                 <UserModal

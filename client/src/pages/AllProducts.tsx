@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { getProducts } from '../api'
+import { usePageTitle } from '../hooks/usePageTitle'
 import Navbar from '../components/Navbar'
 import Cart from '../components/Cart'
 
 export default function AllProducts() {
+    usePageTitle('TODOS OS PRODUTOS')
     const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: getProducts })
 
     return (
